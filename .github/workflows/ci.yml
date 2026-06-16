@@ -1,0 +1,77 @@
+name: app-ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  app-and-forger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Check app
+        run: npm run check
+
+      - name: Checkout Forger
+        uses: actions/checkout@v5
+        with:
+          repository: Hcoder10/insforge-hackathon-forger
+          path: .forger
+
+      - name: Run Forger PR Guard
+        run: |
+          node .forger/tools/forger.js project-review \
+            --project "$GITHUB_WORKSPACE" \
+            --out forger-results/project-review
+
+      - name: Publish Forger summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "## FORGER PR Guard"
+            echo
+            if [ -f forger-results/project-review/pr-comment.md ]; then
+              cat forger-results/project-review/pr-comment.md
+            else
+              echo "Forger did not produce a PR comment artifact."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Forger evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: forger-pr-guard
+          path: forger-results/project-review/
+          if-no-files-found: warn
+
+      - name: Comment Forger PR Guard
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORGER_CI_STATUS: ${{ job.status }}
+          FORGER_COMMENT_PATH: forger-results/project-review/pr-comment.md
+          FORGER_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node .forger/tools/post_forger_pr_comment.js

@@ -21,6 +21,12 @@ jobs:
       - name: Checkout app
         uses: actions/checkout@v5
 
+      - name: Checkout Forger
+        uses: actions/checkout@v5
+        with:
+          repository: Hcoder10/insforge-hackathon-forger
+          path: .forger
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -33,13 +39,8 @@ jobs:
       - name: Check app
         run: npm run check
 
-      - name: Checkout Forger
-        uses: actions/checkout@v5
-        with:
-          repository: Hcoder10/insforge-hackathon-forger
-          path: .forger
-
       - name: Run Forger PR Guard
+        if: ${{ always() }}
         run: |
           node .forger/tools/forger.js project-review \
             --project "$GITHUB_WORKSPACE" \

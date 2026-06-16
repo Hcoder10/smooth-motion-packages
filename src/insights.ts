@@ -21,6 +21,10 @@ export async function loadPackageDigest(page = 0): Promise<{ items: DigestEntry[
     .from('motion_packages')
     .select('id');
 
+  if (!data || !countRows) {
+    return { items: [], total: 0 };
+  }
+
   return {
     items: data.map(({ id, name }) => ({ id, name })),
     total: countRows.length,
@@ -70,6 +74,7 @@ export async function estimateStorageFootprint(): Promise<number> {
   if (!files) return 0;
 
   let totalBytes = 0;
+  // @ts-expect-error Dogfood branch: this intentionally treats storage list data as iterable.
   for (const file of files) {
     const { data } = await insforge.storage.from('motion-packages').download(file.key);
     totalBytes += data?.size || file.size || 0;

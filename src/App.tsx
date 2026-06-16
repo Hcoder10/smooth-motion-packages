@@ -1,8 +1,9 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Archive, Download, ExternalLink, FileUp, PackageCheck, RefreshCw, Search, Sparkles } from 'lucide-react';
 import { createPackage, downloadPackage, getCurrentUser, isConfigured, listPackages, signInWithPassword, signOut, signUpWithPassword } from './insforge';
+import { estimateStorageFootprint, loadMyUploads, loadPackageDigest, saveDigestMarker } from './insights';
 import { formatBytes, validateDraft } from './package-utils';
-import type { AuthIdentity, PackageCard, PackageDraft } from './types';
+import type { AuthIdentity, DigestEntry, PackageCard, PackageDraft } from './types';
 import './styles.css';
 
 const emptyDraft: PackageDraft = {
@@ -64,6 +65,10 @@ export default function App() {
   const [user, setUser] = useState<AuthIdentity | null>(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [digest, setDigest] = useState<DigestEntry[]>([]);
+  const [digestTotal, setDigestTotal] = useState(0);
+  const [myUploads, setMyUploads] = useState<DigestEntry[]>([]);
+  const [storageBytes, setStorageBytes] = useState(0);
 
   async function refresh(nextPage = page) {
     if (!isConfigured) return;
@@ -170,6 +175,38 @@ export default function App() {
       setStatus(`Downloaded ${pkg.fileName}`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Download failed');
+    }
+  }
+
+  async function refreshDigest() {
+    if (!isConfigured) return;
+    setStatus('Loading publisher digest');
+    try {
+      const [digestResult, owned, bytes] = await Promise.all([
+        loadPackageDigest(0),
+        user ? loadMyUploads() : Promise.resolve([]),
+        estimateStorageFootprint(),
+      ]);
+      setDigest(digestResult.items);
+      setDigestTotal(digestResult.total);
+      setMyUploads(owned);
+      setStorageBytes(bytes);
+      setStatus(`Digest loaded for ${digestResult.total} packages`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Digest failed');
+    }
+  }
+
+  async function createDigest() {
+    setBusy(true);
+    try {
+      await saveDigestMarker(`digest-${new Date().toISOString().slice(0, 10)}`);
+      await refreshDigest();
+      setStatus('Digest marker saved');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not save digest marker');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -281,6 +318,30 @@ export default function App() {
               Next
             </button>
           </div>
+
+          <section className="digest-panel">
+            <div className="digest-heading">
+              <h2>Publisher Digest</h2>
+              <div className="digest-actions">
+                <button type="button" onClick={refreshDigest} disabled={busy || !isConfigured}>
+                  Refresh
+                </button>
+                <button type="button" onClick={createDigest} disabled={busy || !isConfigured}>
+                  Save marker
+                </button>
+              </div>
+            </div>
+            <div className="digest-metrics">
+              <span>{digestTotal} packages indexed</span>
+              <span>{myUploads.length} owned packages</span>
+              <span>{formatBytes(storageBytes)} in storage</span>
+            </div>
+            <div className="digest-list">
+              {(digest.length ? digest : filteredPackages.slice(0, 4)).map((item) => (
+                <span key={item.id}>{item.name}</span>
+              ))}
+            </div>
+          </section>
         </section>
       </section>
     </main>

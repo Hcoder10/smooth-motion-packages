@@ -369,6 +369,68 @@ textarea {
   font-weight: 800;
 }
 
+.digest-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.digest-heading,
+.digest-actions,
+.digest-metrics,
+.digest-list {
+  display: flex;
+  align-items: center;
+}
+
+.digest-heading {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.digest-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.digest-actions {
+  gap: 8px;
+}
+
+.digest-actions button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #e8eee4;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.digest-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.digest-metrics,
+.digest-list {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.digest-metrics span,
+.digest-list span {
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #f8fbf3;
+  color: #3f4d3b;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 @media (max-width: 840px) {
   .shell {
     padding: 18px;

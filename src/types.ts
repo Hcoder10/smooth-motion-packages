@@ -44,3 +44,8 @@ export type PackageCard = {
   fileSize: number;
   createdAt: string;
 };
+
+export type DigestEntry = {
+  id: string;
+  name: string;
+};

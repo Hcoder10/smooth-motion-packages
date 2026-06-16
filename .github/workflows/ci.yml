@@ -41,6 +41,9 @@ jobs:
 
       - name: Run Forger PR Guard
         if: ${{ always() }}
+        env:
+          FORGE_OPT_URL: ${{ secrets.FORGE_OPT_URL }}
+          FORGE_OPT_MODEL: forge-optimizer
         run: |
           node .forger/tools/forger.js project-review \
             --project "$GITHUB_WORKSPACE" \
